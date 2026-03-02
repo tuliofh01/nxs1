@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>duke terminal</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="terminal">
+<pre class="ascii">
+     __                                 
+  /\ \ \_____  ___   _ ___              
+ /  \/ / _ \ \/ / | | / __|             
+/ /\  /  __/>  <| |_| \__ \             
+\_\ \/ \___/_/\_\\__,_|___/             
+                                        
+   ___      _            _              
+  / _ \_ __(_)_   ____ _| |_ ___        
+ / /_)/ '__| \ \ / / _` | __/ _ \       
+/ ___/| |  | |\ V / (_| | ||  __/       
+\/    |_|  |_| \_/ \__,_|\__\___|       
+                                        
+     __     _                      _    
+  /\ \ \___| |___      _____  _ __| | __
+ /  \/ / _ \ __\ \ /\ / / _ \| '__| |/ /
+/ /\  /  __/ |_ \ V  V / (_) | |  |   < 
+\_\ \/ \___|\__| \_/\_/ \___/|_|  |_|\_\
+                                        
+</pre>
+
+<p>duke // tuliofh01</p>
+<a href="https://github.com/tuliofh01" target="_blank">github.com/tuliofh01</a>
+
+<button id="filterBtn">filter</button>
+<div id="filterPopup" class="hidden">
+  <input id="filterInput" placeholder="filter logs..." />
+</div>
+
+<div id="logs"></div>
+</div>
+
+<script type="module" src="/js/ui.js"></script>
+<script type="module" src="/js/internal.js"></script>
+<script type="module" src="/js/background.js"></script>
+
+</body>
+</html>

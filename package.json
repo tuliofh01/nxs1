@@ -1,0 +1,14 @@
+{
+"name": "duke-worker",
+"scripts": {
+  "dev": "wrangler dev",
+  "deploy": "wrangler deploy",
+  "build:css": "sass src/public/scss/styles.scss src/public/css/styles.css --no-source-map",
+  "watch:css": "sass --watch src/public/scss/styles.scss:src/public/css/styles.css"
+},
+"devDependencies": {
+	"sass": "^1.72.0",
+	"typescript": "^5.4.0",
+	"wrangler": "^3.0.0"
+}
+}
