@@ -6,51 +6,80 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-TUNNEL_NAME="nxs1"
+# Configuration
+WORKER_URL="https://nxs1.tuliofh01.workers.dev"
 
-echo -e "${GREEN}=== Cloudflare Tunnel Manager ===${NC}"
+echo -e "${GREEN}=== Cloudflare Quick Tunnel Manager ===${NC}"
+echo "This script starts a free Cloudflare Tunnel (TryCloudflare) and updates your Worker."
 
-# Pre-checks
+# Check for cloudflared
 if ! command -v cloudflared &> /dev/null; then
     echo -e "${RED}Error: cloudflared is not installed. Run ./setup.sh first.${NC}"
     exit 1
 fi
 
-if [ ! -f ~/.cloudflared/cert.pem ]; then
-    echo -e "${RED}Error: Not authenticated. Run ./setup.sh first.${NC}"
+# Ask for port/service
+read -p "Enter local port/service to expose (default: ssh://localhost:22): " SERVICE_URL
+SERVICE_URL=${SERVICE_URL:-ssh://localhost:22}
+
+echo -e "\n${YELLOW}Starting tunnel for $SERVICE_URL...${NC}"
+echo "This may take a moment to initialize..."
+
+# Start cloudflared in the background and capture output
+LOG_FILE=$(mktemp)
+cloudflared tunnel --url "$SERVICE_URL" > "$LOG_FILE" 2>&1 &
+PID=$!
+
+# Wait for URL to appear in logs
+echo "Waiting for tunnel URL..."
+TUNNEL_URL=""
+MAX_RETRIES=30
+COUNT=0
+
+while [ -z "$TUNNEL_URL" ] && [ $COUNT -lt $MAX_RETRIES ]; do
+    sleep 1
+    TUNNEL_URL=$(grep -o 'https://.*\.trycloudflare\.com' "$LOG_FILE" | head -n 1)
+    COUNT=$((COUNT+1))
+done
+
+if [ -z "$TUNNEL_URL" ]; then
+    echo -e "${RED}Failed to obtain tunnel URL. Check logs:${NC}"
+    cat "$LOG_FILE"
+    kill $PID
+    rm "$LOG_FILE"
     exit 1
 fi
 
-# Tunnel Management
-echo -e "\n${YELLOW}Checking tunnel configuration for '$TUNNEL_NAME'...${NC}"
+echo -e "${GREEN}Tunnel Active at: $TUNNEL_URL${NC}"
 
-if ! cloudflared tunnel list | grep -q "$TUNNEL_NAME"; then
-    echo "Tunnel not found. Creating..."
-    if cloudflared tunnel create "$TUNNEL_NAME"; then
-        echo -e "${GREEN}Tunnel '$TUNNEL_NAME' created successfully.${NC}"
-    else
-        echo -e "${RED}Failed to create tunnel.${NC}"
-        exit 1
-    fi
+# Update Worker
+echo -e "\n${YELLOW}Updating Worker at $WORKER_URL...${NC}"
+
+# Read secret if exists
+SECRET=""
+if [ -f .env ]; then
+    source .env
+fi
+
+# Post data to worker
+if [ -n "$TUNNEL_SECRET" ]; then
+    RESPONSE=$(curl -s -X POST "$WORKER_URL/api/tunnel" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $TUNNEL_SECRET" \
+        -d "{\"tunnelUrl\": \"$TUNNEL_URL\"}")
 else
-    echo -e "${GREEN}Tunnel '$TUNNEL_NAME' already exists.${NC}"
+    # If no secret, try without auth (if worker allows it in dev mode)
+    RESPONSE=$(curl -s -X POST "$WORKER_URL/api/tunnel" \
+        -H "Content-Type: application/json" \
+        -d "{\"tunnelUrl\": \"$TUNNEL_URL\"}")
 fi
 
-# Running
-echo -e "\n${GREEN}Starting Tunnel '$TUNNEL_NAME'...${NC}"
-echo "This will block the terminal. Press Ctrl+C to stop."
-echo "---------------------------------------------------"
+echo "Worker Response: $RESPONSE"
 
-# We run without a config file here for simplicity, assuming the user just wants
-# to expose the tunnel. For production, a config.yml is recommended.
-# If you have a specific target (e.g., SSH or HTTP), you might need to specify it.
-# For now, we'll run it. Note: 'tunnel run' typically requires a config file or ingress rules
-# defined in the dashboard if it's a remotely managed tunnel.
-# If this is a locally managed tunnel, we need to know what to route.
+echo -e "\n${GREEN}Setup Complete!${NC}"
+echo "Your local service ($SERVICE_URL) is now linked to your Worker."
+echo "Visit $WORKER_URL to see the connection details."
+echo -e "${YELLOW}Press Ctrl+C to stop the tunnel.${NC}"
 
-# Attempting to run. If it fails due to missing config, we'll warn.
-if ! cloudflared tunnel run "$TUNNEL_NAME"; then
-    echo -e "\n${RED}Tunnel stopped or failed to start.${NC}"
-    echo "Ensure you have a valid configuration or ingress rules set up."
-    echo "If you are using a config file, make sure it is in ~/.cloudflared/config.yml or specify it with --config."
-fi
+# Keep script running to maintain the background process
+wait $PID
