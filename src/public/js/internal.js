@@ -1,36 +1,9 @@
-const logsDiv = document.getElementById("logs");
-const filterBtn = document.getElementById("filterBtn");
-const filterPopup = document.getElementById("filterPopup");
-const filterInput = document.getElementById("filterInput");
-
-filterBtn.onclick = () => {
-  filterPopup.classList.toggle("hidden");
-};
-
-async function loadLogs() {
-  const res = await fetch("/api/logs");
-  const logs = await res.json();
-  render(logs);
-}
-
-function render(logs) {
-  const filter = filterInput.value.toLowerCase();
-
-  logsDiv.innerHTML = logs
-    .filter(l =>
-      JSON.stringify(l).toLowerCase().includes(filter)
-    )
-    .map(l => `
-      <div class="log-entry">
-        [${new Date(l.created_at).toLocaleTimeString()}]
-        ${l.event_type}
-        ${l.ip} (${l.country})
-        ${l.latency_ms}ms
-      </div>
-    `)
-    .join("");
-}
-
-filterInput.oninput = loadLogs;
-
-loadLogs();
+var i=document.getElementById("logs"),r=document.getElementById("filterBtn"),c=document.getElementById("filterPopup"),n=document.getElementById("filterInput");r&&(r.onclick=()=>{c.classList.toggle("hidden")});async function s(){try{let o=await(await fetch("/api/logs")).json();l(o)}catch(e){console.error("Failed to load logs",e)}}function l(e){let o=n?n.value.toLowerCase():"";i&&(i.innerHTML=e.filter(t=>JSON.stringify(t).toLowerCase().includes(o)).map(t=>`
+        <div class="log-entry">
+          [${new Date(t.created_at).toLocaleTimeString()}]
+          ${t.event_type}
+          ${t.ip} (${t.country})
+          ${t.latency_ms}ms
+        </div>
+      `).join(""))}n&&(n.oninput=s);s();
+//# sourceMappingURL=internal.js.map

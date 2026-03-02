@@ -1,81 +1,56 @@
 #!/bin/bash
 set -e
 
-# Configuration
-TUNNEL_NAME="nxs1" # Replace with actual tunnel name if different, or parse from config.yml if available
-SSH_SERVICE="sshd"
-CLOUDFLARED_SERVICE="cloudflared"
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-echo "Checking SSH daemon status..."
-if ! systemctl is-active --quiet "$SSH_SERVICE"; then
-    echo "Starting SSH daemon..."
-    sudo systemctl start "$SSH_SERVICE"
-else
-    echo "SSH daemon is running."
+TUNNEL_NAME="nxs1"
+
+echo -e "${GREEN}=== Cloudflare Tunnel Manager ===${NC}"
+
+# Pre-checks
+if ! command -v cloudflared &> /dev/null; then
+    echo -e "${RED}Error: cloudflared is not installed. Run ./setup.sh first.${NC}"
+    exit 1
 fi
 
-echo "Checking Cloudflare Tunnel status..."
-if ! systemctl is-active --quiet "$CLOUDFLARED_SERVICE"; then
-    echo "Starting Cloudflare Tunnel..."
-    sudo systemctl start "$CLOUDFLARED_SERVICE"
-else
-    echo "Cloudflare Tunnel is running."
+if [ ! -f ~/.cloudflared/cert.pem ]; then
+    echo -e "${RED}Error: Not authenticated. Run ./setup.sh first.${NC}"
+    exit 1
 fi
 
-# Function to monitor logs
-monitor_logs() {
-    echo "Monitoring logs... (Ctrl+C to stop monitoring)"
-    sudo journalctl -u "$CLOUDFLARED_SERVICE" -f
-}
+# Tunnel Management
+echo -e "\n${YELLOW}Checking tunnel configuration for '$TUNNEL_NAME'...${NC}"
 
-# Function to stop/pause
-stop_connection() {
-    read -p "Stop SSH daemon? (y/n): " STOP_SSH
-    if [[ "$STOP_SSH" == "y" ]]; then
-        sudo systemctl stop "$SSH_SERVICE"
-        echo "SSH daemon stopped."
+if ! cloudflared tunnel list | grep -q "$TUNNEL_NAME"; then
+    echo "Tunnel not found. Creating..."
+    if cloudflared tunnel create "$TUNNEL_NAME"; then
+        echo -e "${GREEN}Tunnel '$TUNNEL_NAME' created successfully.${NC}"
+    else
+        echo -e "${RED}Failed to create tunnel.${NC}"
+        exit 1
     fi
+else
+    echo -e "${GREEN}Tunnel '$TUNNEL_NAME' already exists.${NC}"
+fi
 
-    read -p "Stop Cloudflare Tunnel? (y/n): " STOP_CF
-    if [[ "$STOP_CF" == "y" ]]; then
-        sudo systemctl stop "$CLOUDFLARED_SERVICE"
-        echo "Cloudflare Tunnel stopped."
-    fi
-}
+# Running
+echo -e "\n${GREEN}Starting Tunnel '$TUNNEL_NAME'...${NC}"
+echo "This will block the terminal. Press Ctrl+C to stop."
+echo "---------------------------------------------------"
 
-# Main loop
-while true; do
-    echo "-----------------------------------"
-    echo "Status:"
-    echo "SSH Daemon: $(systemctl is-active "$SSH_SERVICE")"
-    echo "Cloudflare Tunnel: $(systemctl is-active "$CLOUDFLARED_SERVICE")"
-    echo "-----------------------------------"
-    echo "Options:"
-    echo "1. Monitor Logs"
-    echo "2. Stop/Pause Connection"
-    echo "3. Restart Services"
-    echo "4. Exit"
-    
-    read -p "Select option: " OPTION
-    
-    case "$OPTION" in
-        1)
-            monitor_logs
-            ;;
-        2)
-            stop_connection
-            ;;
-        3)
-            sudo systemctl restart "$SSH_SERVICE"
-            sudo systemctl restart "$CLOUDFLARED_SERVICE"
-            echo "Services restarted."
-            ;;
-        4)
-            echo "Exiting..."
-            exit 0
-            ;;
-        *)
-            echo "Invalid option."
-            ;;
-    esac
-done
+# We run without a config file here for simplicity, assuming the user just wants
+# to expose the tunnel. For production, a config.yml is recommended.
+# If you have a specific target (e.g., SSH or HTTP), you might need to specify it.
+# For now, we'll run it. Note: 'tunnel run' typically requires a config file or ingress rules
+# defined in the dashboard if it's a remotely managed tunnel.
+# If this is a locally managed tunnel, we need to know what to route.
+
+# Attempting to run. If it fails due to missing config, we'll warn.
+if ! cloudflared tunnel run "$TUNNEL_NAME"; then
+    echo -e "\n${RED}Tunnel stopped or failed to start.${NC}"
+    echo "Ensure you have a valid configuration or ingress rules set up."
+    echo "If you are using a config file, make sure it is in ~/.cloudflared/config.yml or specify it with --config."
+fi

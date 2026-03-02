@@ -8,6 +8,7 @@ This project utilizes automated agents to manage development, deployment, and se
 - **Database Agent:** Manages D1 database migrations and query optimization.
 
 ## Workflow
-1.  Frontend source (TS/SCSS) is compiled by the Deployment Agent.
-2.  Backend logic (Worker) is consolidated and secured by the Security Agent.
-3.  Changes are pushed to Cloudflare's edge network.
+1.  **Check TODOs**: All agents must check `TODO.md` for active tasks and priorities.
+2.  Frontend source (TS/SCSS) is compiled by the Deployment Agent.
+3.  Backend logic (Worker) is consolidated and secured by the Security Agent.
+4.  Changes are pushed to Cloudflare's edge network.

@@ -1,42 +1,55 @@
 #!/bin/bash
 set -e
 
-echo "Running build pipeline..."
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-# 1. Compile & Check
-echo "Compiling frontend assets..."
-npm run build
+echo -e "${GREEN}=== Build and Deploy Pipeline ===${NC}"
 
-echo "Running type check..."
-npm run check
+# 1. Compile Assets
+echo -e "\n${YELLOW}[1/3] Compiling assets...${NC}"
+# This runs build.js which handles esbuild (TS) and sass (SCSS)
+if npm run build; then
+    echo -e "${GREEN}Assets compiled successfully.${NC}"
+else
+    echo -e "${RED}Asset compilation failed.${NC}"
+    exit 1
+fi
 
-# 2. Deploy
-echo "Deploying worker to Cloudflare..."
-npm run deploy
+# 2. Type Check
+echo -e "\n${YELLOW}[2/3] Running type checks...${NC}"
+if npm run check; then
+    echo -e "${GREEN}Type checks passed.${NC}"
+else
+    echo -e "${RED}Type checks failed.${NC}"
+    exit 1
+fi
 
-# 3. Verify Deployment
-echo "Verifying deployment..."
-# Check HTTP status of the worker (adjust URL as needed, assuming nxs1.tuliofh01.workers.dev based on wrangler.json name)
-# Note: wrangler.json name is 'nxs1', so default worker URL is nxs1.<subdomain>.workers.dev
+# 3. Deploy
+echo -e "\n${YELLOW}[3/3] Deploying to Cloudflare Workers...${NC}"
+if npm run deploy; then
+    echo -e "${GREEN}Deployment successful.${NC}"
+else
+    echo -e "${RED}Deployment failed.${NC}"
+    exit 1
+fi
+
+# 4. Verify
+echo -e "\n${YELLOW}Verifying deployment...${NC}"
+# Extract worker name from wrangler.json if possible, defaulting to known name
 WORKER_URL="https://nxs1.tuliofh01.workers.dev"
 
 if command -v curl &> /dev/null; then
     HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" $WORKER_URL)
     if [ "$HTTP_STATUS" -eq 200 ]; then
-        echo "Worker is up and running at $WORKER_URL (Status: $HTTP_STATUS)"
+        echo -e "${GREEN}Worker is accessible at $WORKER_URL (Status: 200 OK)${NC}"
     else
-        echo "Worker deployment might have issues. Status: $HTTP_STATUS"
+        echo -e "${RED}Worker returned status: $HTTP_STATUS${NC}"
     fi
 else
-    echo "curl not found, skipping HTTP check."
+    echo "curl not found, skipping HTTP verification."
 fi
 
-# 4. Check Tunnel Status
-echo "Checking Cloudflare Tunnel status..."
-if command -v cloudflared &> /dev/null; then
-    cloudflared tunnel list || echo "No tunnels found or not logged in."
-else
-    echo "cloudflared not installed."
-fi
-
-echo "Build and deployment complete."
+echo -e "\n${GREEN}Pipeline Complete!${NC}"
