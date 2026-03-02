@@ -40,6 +40,16 @@ export default {
       }
     }
 
+    // API: Get Tunnel Status
+    if (req.method === "GET" && url.pathname === "/api/status") {
+      let tunnelUrl = "Not Connected";
+      try {
+        const config = await env.DB.prepare("SELECT value FROM config WHERE key = 'tunnel_url'").first() as any;
+        if (config?.value) tunnelUrl = config.value;
+      } catch (e) { /* ignore */ }
+      return Response.json({ tunnelUrl, isConnected: tunnelUrl !== "Not Connected" });
+    }
+
     // API Routes
     if (url.pathname.startsWith("/api/fingerprint")) {
       const response = await handleFingerprint(req, env, start);
@@ -54,7 +64,7 @@ export default {
       return setSecurityHeaders(response);
     }
 
-    // Static Asset Handling - Use relative path for ASSETS binding
+    // Static Asset Handling
     let assetPath = url.pathname;
     if (assetPath === "/") {
       assetPath = "/index.html";

@@ -1,35 +1,33 @@
-# Cloudflare Tunneling Project - Dynamic Todo List
+# Cloudflare Tunneling Project - TODO
 
-This file tracks the active development tasks for the Cloudflare Tunneling project.
-Agents should refer to this file for current priorities and task status.
+## Current Status
+- [x] Worker deployed successfully at https://nxs1.tuliofh01.workers.dev/
+- [x] Static assets serving correctly (HTML, CSS, JS)
+- [x] API endpoints working (/api/status, /api/logs, /api/tunnel)
+- [x] Tunnel auto-update from run.sh working (TryCloudflare)
+- [x] Client-side tunnel status display working
 
-## 🚀 Current Sprint: Foundation & Security
+## Next Steps (Agents Context)
 
-### 🛠️ Infrastructure & Setup
-- [x] Refactor shell scripts (setup, build, run) for better UX and error handling
-- [x] Remove redundant `deploy.sh` script
-- [ ] Create `~/.cloudflared/config.yml` template for persistent tunnel configuration
-- [ ] Add pre-commit hooks for linting and formatting
+### Deployment Agent
+- [ ] Add version tagging to deployments
+- [ ] Implement automated testing in CI/CD
 
-### 🤖 Agents Tasks
-#### Deployment Agent
-- [ ] Implement automated testing in `build.sh` pipeline
-- [ ] Add versioning to build artifacts
+### Security Agent
+- [ ] Review and harden CSP headers
+- [ ] Add rate limiting to API endpoints
 
-#### Security Agent
-- [ ] Verify rate limiting implementation in `src/utils/security.ts`
-- [ ] Audit CSP headers for strictness
-- [ ] Implement request validation for all API endpoints
+### Database Agent
+- [ ] Add more complex query optimizations
+- [ ] Implement data retention policies
 
-#### Database Agent
-- [ ] Design schema for advanced logging (beyond simple visits)
-- [ ] Create migration script for new schema changes
+## Usage
+1. `./setup.sh` - Install cloudflared & configure secrets
+2. `./build.sh` - Build and deploy worker
+3. `./run.sh` - Start tunnel (exposes local port to internet)
+   - Usage: `./run.sh [port]` (default: 22 for SSH)
+   - Example: `./run.sh 8080` to expose HTTP server on port 8080
 
-### 📦 Features
-- [ ] Add a dashboard UI to view logs from D1
-- [ ] Implement real-time updates using WebSockets (if applicable)
-
-## 📝 Notes
-- **Tunnel Name**: `nxs1`
-- **Worker URL**: `https://nxs1.tuliofh01.workers.dev`
-- **Database**: `d1-template-database`
+## Tunnel Info
+- Active URL: https://nxs1.tuliofh01.workers.dev/
+- Tunnel Status API: /api/status
