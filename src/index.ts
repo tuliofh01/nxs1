@@ -13,15 +13,21 @@ export default {
     const start = Date.now();
     const url = new URL(req.url);
 
-    // API: Update Tunnel URL (Protected)
+    // API: Update Tunnel URL
     if (req.method === "POST" && url.pathname === "/api/tunnel") {
       const authHeader = req.headers.get("Authorization");
-      // Simple check: if secret is set, it must match. If not set, allow it (dev mode) or deny.
       if (env.TUNNEL_SECRET && !authHeader?.includes(env.TUNNEL_SECRET)) {
         return new Response("Unauthorized", { status: 401 });
       }
 
-      const { tunnelUrl } = await req.json() as { tunnelUrl: string };
+      let body;
+      try {
+        body = await req.json();
+      } catch (e) {
+        return new Response("Invalid JSON", { status: 400 });
+      }
+      
+      const tunnelUrl = (body as any)?.tunnelUrl;
       if (!tunnelUrl) return new Response("Missing tunnelUrl", { status: 400 });
 
       try {
@@ -30,7 +36,6 @@ export default {
         ).bind(tunnelUrl, Date.now()).run();
         return new Response("Tunnel URL Updated", { status: 200 });
       } catch (e) {
-        // Table might not exist yet, ignore or create
         return new Response("DB Error: " + e, { status: 500 });
       }
     }
@@ -49,55 +54,21 @@ export default {
       return setSecurityHeaders(response);
     }
 
-    // Dynamic Tunnel Dashboard (Injects active tunnel URL)
-    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-      let currentTunnelUrl = "Not Connected";
-      try {
-        const tunnelConfig = await env.DB.prepare("SELECT value FROM config WHERE key = 'tunnel_url'").first() as { value: string } | undefined;
-        if (tunnelConfig?.value) currentTunnelUrl = tunnelConfig.value;
-      } catch (e) {
-        // Table might not exist
-      }
-
-      // Fetch static asset
-      let response = await env.ASSETS.fetch(req);
-      let html = await response.text();
-
-      // Inject active tunnel data
-      const isOnline = currentTunnelUrl !== "Not Connected";
-      
-      html = html.replace(
-        '<!-- TUNNEL_STATUS -->', 
-        `<div id="tunnel-status" class="card">
-           <h2>Active Tunnel</h2>
-           <p class="status ${isOnline ? 'online' : 'offline'}">
-             ${isOnline ? 'Online' : 'Offline'}
-           </p>
-           <code class="tunnel-url">${currentTunnelUrl}</code>
-           ${isOnline ? 
-             `<div class="ssh-command">
-                <p>Connect via SSH:</p>
-                <pre>ssh user@${currentTunnelUrl.replace('https://', '').replace('http://', '')}</pre>
-              </div>` : ''
-           }
-         </div>`
-      );
-      
-      return setSecurityHeaders(new Response(html, {
-        headers: response.headers
-      }));
+    // Static Asset Handling - Use relative path for ASSETS binding
+    let assetPath = url.pathname;
+    if (assetPath === "/") {
+      assetPath = "/index.html";
     }
 
-    // Static Asset Handling
     let response: Response;
     try {
-      response = await env.ASSETS.fetch(req);
+      response = await env.ASSETS.fetch(assetPath);
     } catch (e) {
       response = new Response("Not Found", { status: 404 });
     }
 
     // Log page visits
-    if (response.status === 200 && (url.pathname === "/" || url.pathname.endsWith(".html"))) {
+    if (response.status === 200 && (url.pathname === "/" || url.pathname === "/index.html")) {
        const latency = Date.now() - start;
        env.DB.prepare(`
          INSERT INTO logs (event_type, latency_ms, details, created_at)
