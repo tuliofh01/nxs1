@@ -76,3 +76,7 @@ dist
 # Wrangler
 .wrangler/
 .dev.vars
+
+# Build artifacts
+src/public/js/
+src/public/css/
