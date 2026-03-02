@@ -5,6 +5,11 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "esModuleInterop": true,
-    "types": ["@cloudflare/workers-types"]
-  }
+    "types": ["@cloudflare/workers-types"],
+    "lib": ["ESNext", "DOM"],
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": ["src"]
 }
