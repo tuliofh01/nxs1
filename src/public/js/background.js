@@ -1,2 +1,0 @@
-var t=document.getElementById("bg"),n=t.getContext("2d");function a(){t.width=window.innerWidth,t.height=window.innerHeight}a();window.addEventListener("resize",a);var i=Math.random()*999999;function o(s){n.clearRect(0,0,t.width,t.height);for(let e=0;e<140;e++){let d=(Math.sin(i+e*13.37)*.5+.5)*t.width,r=(Math.cos(i+e+s*7e-4)*.5+.5)*t.height;n.fillStyle="rgba(0,255,120,0.18)",n.fillRect(d,r,2,2)}requestAnimationFrame(o)}requestAnimationFrame(o);
-//# sourceMappingURL=background.js.map

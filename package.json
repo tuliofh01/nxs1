@@ -2,9 +2,9 @@
   "name": "nxs1",
   "version": "1.0.0",
   "scripts": {
-    "build": "node build.js",
-    "dev": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
+    "build": "echo 'Frontend built by Angular CLI'",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "check": "tsc && wrangler deploy --dry-run",
     "predeploy": "wrangler d1 migrations apply DB --remote",
