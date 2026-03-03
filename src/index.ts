@@ -13,7 +13,7 @@ export default {
     const start = Date.now();
     const url = new URL(req.url);
 
-    // API: Update Tunnel URL
+    // API: Update Tunnel URL & Logs
     if (req.method === "POST" && url.pathname === "/api/tunnel") {
       const authHeader = req.headers.get("Authorization");
       if (env.TUNNEL_SECRET && !authHeader?.includes(env.TUNNEL_SECRET)) {
@@ -22,19 +22,30 @@ export default {
 
       let body;
       try {
-        body = await req.json();
+        body = await req.json() as any;
       } catch (e) {
         return new Response("Invalid JSON", { status: 400 });
       }
       
-      const tunnelUrl = (body as any)?.tunnelUrl;
-      if (!tunnelUrl) return new Response("Missing tunnelUrl", { status: 400 });
+      const tunnelUrl = body?.tunnelUrl;
+      const logs = body?.logs; // Optional logs array
 
       try {
-        await env.DB.prepare(
-          "INSERT INTO config (key, value, updated_at) VALUES ('tunnel_url', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
-        ).bind(tunnelUrl, Date.now()).run();
-        return new Response("Tunnel URL Updated", { status: 200 });
+        if (tunnelUrl) {
+          await env.DB.prepare(
+            "INSERT INTO config (key, value, updated_at) VALUES ('tunnel_url', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+          ).bind(tunnelUrl, Date.now()).run();
+        }
+
+        if (logs && Array.isArray(logs)) {
+          for (const logLine of logs) {
+            await env.DB.prepare(
+              "INSERT INTO logs (event_type, details, created_at) VALUES (?, ?, ?)"
+            ).bind("SYSTEM_LOG", JSON.stringify({ line: logLine }), Date.now()).run();
+          }
+        }
+
+        return new Response("Update Successful", { status: 200 });
       } catch (e) {
         return new Response("DB Error: " + e, { status: 500 });
       }

@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudfared Tunnel Manager Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/tuliofh01/Documents/Coding Projects/cloudfared-tunneling
+ExecStart=/home/tuliofh01/Documents/Coding Projects/cloudfared-tunneling/.venv/bin/python backend/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
